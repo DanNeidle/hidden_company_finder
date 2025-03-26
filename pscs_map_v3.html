@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Map of foreign corporate PSCs</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Important for mobile -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="https://taxpolicy.org.uk/wp-content/assets/logo_emblem_on_blue.png">
+
+  <!-- Google Fonts: Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Leaflet CSS and other libraries -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shepherd.js/11.2.0/css/shepherd.min.css"  />
+    
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <link rel="stylesheet" href="pscs_map_v3.css"  />
+  
+  <link rel="shortcut icon" type="image/png" href="https://taxpolicy.org.uk/wp-content/assets/logo_emblem_on_blue.jpg" />
+
+  <!-- Required Libraries -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shepherd.js/11.2.0/js/shepherd.min.js"></script>
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+  <!-- Hamburger Button (visible on mobile) -->
+  <button id="hamburgerBtn" class="btn custom-hamburger-btn d-block d-md-none position-fixed" style="top:10px; left:10px;" 
+          type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileControlsOffcanvas" aria-controls="mobileControlsOffcanvas">
+    <i class="material-icons">menu</i>
+  </button>
+
+  <!-- Offcanvas for Mobile Controls -->
+  <div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="mobileControlsOffcanvas" aria-labelledby="mobileControlsLabel">
+    <div class="offcanvas-header">
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="mobileControlsContainer">
+      <!-- Mobile controls will be reparented here.
+           On mobile, the legend will also be moved here. -->
+    </div>
+    <!-- Offcanvas footer with logo -->
+    <div class="offcanvas-footer">
+      <img src="https://taxpolicy.org.uk/wp-content/assets/logo_emblem_on_blue.png" alt="Tax Policy Associates Logo">
+    </div>
+  </div>
+
+  <!-- Header (Logo moved to bottom right) -->
+  <div id="headerContainer">
+    <div id="pageTitle">UK companies with hidden ownership</div>
+  </div>
+
+  <div id="logoContainer">
+  <a href="https://taxpolicy.org.uk/50000-uk-companies-fail-to-declare-their-beneficial-owner/">
+    <img src="https://taxpolicy.org.uk/wp-content/assets/logo_full_white_on_blue.jpg" alt="Tax Policy Associates Logo">
+  </a>
+</div>
+
+  <!-- Desktop Controls Container -->
+  <div id="mapControls">
+    <!-- Mode Toggle -->
+    <div id="modeToggleContainer">
+      <label>
+        <input type="radio" name="locationMode" value="psc" checked> PSC location
+      </label>
+      <label>
+        <input type="radio" name="locationMode" value="uk"> UK company location
+      </label>
+    </div>
+    <!-- Company Search -->
+    <div class="search-container" id="companySearchContainer">
+      <div class="input-group">
+        <span class="input-group-text"><i class="material-icons">search</i></span>
+        <input type="search" id="searchInput" class="form-control" placeholder="Search for companies">
+      </div>
+      <div class="results" id="searchResults">
+        <!-- Each search result should have a class "result-item" -->
+      </div>
+    </div>
+    <!-- Place Search -->
+    <div class="search-container" id="placeSearchContainer">
+      <div class="input-group">
+        <span class="input-group-text"><i class="material-icons">search</i></span>
+        <input type="search" id="placeSearchInput" class="form-control" placeholder="Search for places">
+      </div>
+      <div class="results" id="placeSearchResults">
+        <!-- Each search result should have a class "result-item" -->
+      </div>
+    </div>
+    <!-- Buttons -->
+    <button id="reRunTutorialButton" title="Show tutorial">
+      <i class="material-icons">help_outline</i> Show tutorial
+    </button>
+    <button id="selectAreaButton" title="Draw selection on map">
+      <i class="material-icons">edit</i> Draw selection
+    </button>
+    <button id="shareViewButton" title="Share the current view">
+      <i class="material-icons">share</i> Share view
+    </button>
+    <button id="clearLinksButton" title="Clear all drawn links">
+      <i class="material-icons">clear</i> Clear links
+    </button>
+  </div>
+
+  <!-- Map Container -->
+  <div id="map"></div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Loading companies...<br>This may take a while, potentially a minute<br>or more if you're on mobile or have a slow connections.</p>
+  </div>
+
+  <!-- Legend (desktop version remains here) -->
+  <div class="custom-legend" id="legendBox">
+    <div style="display:flex; justify-content: space-between; align-items: center;">
+      <h4>Legend</h4>
+      <div class="toggle-button" id="legendToggle">–</div>
+    </div>
+    <div class="legend-item" data-category="green" data-active="true">
+      <span class="legend-box" style="background-color:green;"></span>
+      Active UK company
+    </div>
+    <div class="legend-item" data-category="orange" data-active="true">
+      <span class="legend-box" style="background-color:orange;"></span>
+      Active UK company, dormant accounts
+    </div>
+    <div class="legend-item" data-category="red" data-active="true">
+      <span class="legend-box" style="background-color:red;"></span>
+      Active UK company, in default
+    </div>
+    <div class="legend-item inactive" data-category="grey" data-active="false">
+      <span class="legend-box inactive" style="background-color:grey;"></span>
+      Ceased to be PSC
+    </div>
+    <div class="legend-item inactive" data-category="black" data-active="false">
+      <span class="legend-box inactive" style="background-color:black;"></span>
+      UK company is dissolved
+    </div>
+  </div>
+
+  <!-- Share URL Container (positioned below Share view button) -->
+  <div id="shareUrlContainer" style="position: fixed; right: 10px; top: 60%; background: white; border: 1px solid #ccc; padding: 10px; z-index: 1200; display: none;">
+    <input type="text" id="shareUrlInput" style="width: 300px;" readonly>
+    <button id="copyShareUrlButton">Copy</button>
+  </div>
+
+  <!-- Footer -->
+  <div id="footerVersion" style="position: fixed; z-index: 3000;bottom: 5px; right: 100px; color: grey; font-size: 10px;">
+    © Tax Policy Associates, 2025
+  </div>
+
+  <!-- Main Map JS -->
+  <script src="pscs_map_v3.js"></script>
+  
+
+</body>
+</html>

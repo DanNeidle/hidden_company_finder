@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+import json
+import requests
+import time
+
+from companies_house_settings import companies_house_api_key
+
+
+# Input and output file paths
+input_file = "non_uk_corporate_pscs_with_coords.json"
+output_file = "uk_corp_pscs_geo_and_details.json"
+
+def get_company_details(company_number):
+    """
+    Get company details using the Companies House GET /company/{company_number} endpoint.
+    Retries indefinitely (waiting 10 seconds between attempts) if any error occurs.
+    """
+    url = f"https://api.company-information.service.gov.uk/company/{company_number}"
+    while True:
+        try:
+            response = requests.get(url, auth=(companies_house_api_key, ''))
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Error fetching details for company {company_number}: HTTP {response.status_code}. Retrying in 10 seconds...")
+                time.sleep(10)
+        except requests.RequestException as e:
+            print(f"Error fetching details for company {company_number}: {e}. Retrying in 10 seconds...")
+            time.sleep(10)
+
+# Load the non-UK PSC records with coordinates
+with open(input_file, "r", encoding="utf-8") as infile:
+    records = json.load(infile)
+
+# New list to store the records with added company details.
+# (We drop companies that have been liquidated.)
+new_records = []
+for idx, record in enumerate(records): 
+    company_number = record.get("company_number")
+    if not company_number:
+        print(f"Record {idx+1} has no company number. Skipping.")
+        continue
+
+    company_details = get_company_details(company_number)
+    if not company_details:
+        print(f"Record {idx+1}: Failed to fetch company details for {company_number}")
+        continue
+
+    # If the company has been liquidated, skip it.
+    if company_details.get("has_been_liquidated") is True:
+        print(f"Record {idx+1}: Company {company_number} has been liquidated. Dropping.")
+        continue
+
+    # Build our company_details dict from API data.
+    new_company_details = {
+        "company_name": company_details.get("company_name"),
+        "accounts_overdue": (
+            company_details.get("accounts", {})
+            .get("next_accounts", {})
+            .get("overdue")
+        ),
+        "accounts_type": (
+            company_details.get("accounts", {})
+            .get("last_accounts", {})
+            .get("type")
+        ),
+        "registered_office_is_in_dispute": company_details.get("registered_office_is_in_dispute"),
+        "undeliverable_registered_office_address": company_details.get("undeliverable_registered_office_address")
+    }
+    
+    # Add the new details to the record.
+    record["company_details"] = new_company_details
+    new_records.append(record)
+    print(f"Record {idx+1}: Added details for company {company_number}")
+
+# Export the new records to the output file.
+with open(output_file, "w", encoding="utf-8") as outfile:
+    json.dump(new_records, outfile, indent=2)
+
+print(f"Exported {len(new_records)} records to {output_file}")

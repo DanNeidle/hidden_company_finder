@@ -1,0 +1,269 @@
+/* Base Styles */
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+    #map { height: 100vh; width: 100%; }
+    
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      /* Optional: add a background if desired */
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      z-index: 3000;  /* Ensures on top of everything */
+    
+    }
+    .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px; height: 60px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 10px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+
+    #headerContainer {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1200;
+    }
+
+    #logoContainer {
+      position: fixed;
+      top: 20px;
+      right: 10px;
+      z-index: 1200;
+    }
+
+    #logoContainer img { width: 150px; }
+    #pageTitle {
+      margin-top: 5px;
+      font-size: 24px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.9);
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* Map Controls Container */
+    #mapControls {
+      position: fixed;
+      right: 10px;
+      top: 35%;
+      z-index: 1200;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 300px;
+    }
+    /* Increase width by 20% on desktop */
+    @media (min-width: 768px) {
+      #mapControls {
+        width: 360px;
+      }
+    }
+    /* Style for buttons and radio toggle */
+    #mapControls button,
+    #mapControls #modeToggleContainer {
+      background: white;
+      border: 1px solid #ccc;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: box-shadow 0.3s ease, transform 0.2s ease;
+    }
+    #mapControls button:hover {
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      transform: translateY(-2px);
+    }
+    /* Search Containers */
+    .search-container {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .search-container .input-group-text {
+      font-size: 20px;
+      background: transparent;
+      border: none;
+    }
+    .search-container input {
+      font-size: 20px;
+      height: calc(1.5em + 1rem + 2px);
+    }
+    
+    /* Legend (desktop remains on map) */
+    .custom-legend {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      z-index: 1100;
+      background: rgba(255,255,255,0.9);
+      padding: 10px;
+      border: 2px solid grey;
+      line-height: 18px;
+      font-size: 20px;
+      transition: height 0.3s ease;
+      width: 410px;
+    }
+    .custom-legend.minimized { height: 30px; overflow: hidden; }
+    .custom-legend h4 { margin: 0 0 5px 0; font-size: 16px; display: inline-block; }
+    .legend-item {
+      cursor: pointer;
+      margin-bottom: 4px;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      color: #000;
+    }
+    .legend-item.inactive { color: #aaa; }
+    .legend-box {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 5px;
+      border: 1px solid black;
+      vertical-align: middle;
+    }
+    .legend-box.inactive { opacity: 0.4; }
+
+    /* Ensure the offcanvas overlays the fixed UI */
+    .offcanvas {
+      z-index: 1400;
+      position: relative;
+    }
+
+    /* Hamburger Button (custom style) */
+    .custom-hamburger-btn {
+      background-color: #6c757d; /* grey */
+      border: none;
+      border-radius: 4px;
+      padding: 10px;
+      z-index: 1300;
+    }
+    .custom-hamburger-btn i {
+      font-size: 24px;
+      color: white;
+    }
+
+    /* Offcanvas footer with logo at bottom left */
+    .offcanvas-footer {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+    }
+    .offcanvas-footer img {
+      width: 50px;
+    }
+
+    #mobileControlsOffcanvas {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 80%;         /* or your preferred width */
+      z-index: 2000;      /* higher than the map */
+    }
+
+
+    @media (max-width: 767px) {
+      /* Move the logo to bottom left on mobile */
+      #logoContainer {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        top: auto;
+        right: auto;
+      }
+    
+      /* Shift the title to the right to avoid the hamburger menu */
+      #headerContainer {
+        padding-left: 50px; /* adjust this value as needed */
+      }
+    }
+    
+      /* Make legend different on mobile */
+    @media (max-width: 767px) {
+
+      #legendBox {
+        font-size: 0.8em;           /* Adjust as needed */
+        background: none;           /* Remove any background */
+        border: none;               /* Remove borders */
+        box-shadow: none;           /* Remove shadows */
+        padding: 0;                 /* Adjust padding if necessary */
+        margin: 0;                  /* Adjust margin if necessary */
+        position: static;  /* Remove absolute positioning */
+        width: auto;       /* Allow it to take the natural width */
+        margin-bottom: 10px; /* Optional: add spacing below */
+      }
+
+      /*hide the word legend */
+      #legendBox h4 {
+        display: none;
+      }
+    
+      /* Hide the minimize/toggle button */
+      #legendToggle {
+        display: none;
+      }
+    
+      /* adjust individual legend items */
+      .legend-item {
+        padding: 0.2em 0;           /* Reduce spacing */
+      }
+
+       /* Reduce font size for all elements inside the offcanvas */
+      #mobileControlsContainer {
+        font-size: 0.8em; /* Adjust this value as needed */
+      }
+    }
+    
+
+    /* Custom Shepherd footer styling */
+    .shepherd-footer {
+      display: flex;
+      flex-direction: row;
+      align-items: center;       /* Vertically center all children */
+      justify-content: space-between;
+      width: 100%;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    /* Make the progress element fill available space and center its text */
+    .shepherd-progress {
+      flex: 1;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
+
+    /* Make each button expand to fill its space */
+    .shepherd-button {
+      flex: 1;
+      text-align: center;
+      margin: 0 5px;
+    }
+
+    .shepherd-offset-down {
+      margin-top: 150px;
+    }

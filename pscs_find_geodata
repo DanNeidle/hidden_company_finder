@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+import json
+import time
+import logging
+from geopy.geocoders import GoogleV3
+from geopy.extra.rate_limiter import RateLimiter
+from geopy.exc import GeocoderUnavailable
+import requests
+
+# note this is EXPENSIVE. Costs about £150 for the full set. Best to do all screening
+# and reduce the dataset as much as possible before running.
+# but unfortunately open source tools just can't cope with most of the addresses
+from companies_house_settings import google_geo_api_key
+
+# Suppress verbose logging from geopy's RateLimiter and underlying libraries
+logging.getLogger("geopy").setLevel(logging.CRITICAL)
+
+def safe_geocode(address, max_retries=100, delay=5):
+    """
+    Attempt to geocode an address with retries.
+    
+    Parameters:
+      address: The address string.
+      max_retries: Maximum number of retries before giving up.
+      delay: Delay in seconds between retries.
+      
+    Returns:
+      The geopy Location object if successful, otherwise None.
+    """
+    retries = 0
+    while retries < max_retries:
+        try:
+            location = geocode(address)
+            return location
+        except (GeocoderUnavailable, requests.exceptions.ConnectionError, TimeoutError) as e:
+            retries += 1
+            # Only print a short error message without the traceback.
+            print(f"Geocoding error for '{address}': {e}. Retrying {retries}/{max_retries} in {delay} seconds...")
+            time.sleep(delay)
+    print(f"Geocoding failed for address: {address}")
+    return None
+
+# Input and output file paths
+input_file = "non-UK_corporate_pscs.txt"
+output_file = "non_uk_corporate_pscs_with_coords.json"
+
+# Initialize Google Geocoder 
+geolocator = GoogleV3(api_key=google_geo_api_key)
+# Google generally allows faster calls, so we can reduce the delay.
+geocode = RateLimiter(geolocator.geocode, min_delay_seconds=0.1)
+
+def build_address(record):
+    """
+    Build a full address string from the record.
+    It combines fields from both the 'address' and 'identification' sections.
+    """
+    addr = record.get("data", {}).get("address", {})
+    address_components = []
+    for key, value in addr.items():
+        if value:
+            address_components.append(value)
+    # Optionally add the 'place_registered' from the identification block if available
+    ident = record.get("data", {}).get("identification", {})
+    if ident.get("place_registered"):
+        address_components.append(ident.get("place_registered"))
+    # Return a comma-separated string of all address parts
+    return ", ".join(address_components)
+
+output_data = []
+count = 0
+
+with open(input_file, "r", encoding="utf-8") as infile:
+    for line in infile:
+        count += 1
+        record = json.loads(line)
+        address_str = build_address(record)
+        if not address_str:
+            record["latitude"] = None
+            record["longitude"] = None
+        else:
+            location = safe_geocode(address_str)
+            if location:
+                record["latitude"] = location.latitude
+                record["longitude"] = location.longitude
+                print(f"{count}: found {address_str} as {location}")
+            else:
+                record["latitude"] = None
+                record["longitude"] = None
+                print(f"{count}: couldn't find {address_str}")
+        output_data.append(record)
+        # The RateLimiter ensures we don't exceed usage limits.
+
+# Write the output data to a new JSON file.
+with open(output_file, "w", encoding="utf-8") as outfile:
+    json.dump(output_data, outfile, indent=2)
+
+print(f"Output written to {output_file}")

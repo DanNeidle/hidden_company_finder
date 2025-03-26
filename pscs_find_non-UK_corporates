@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+# -----------------------------------------------------------------------------
+# Copyright (c) 2025
+# Licensed under the GNU General Public License, version 2
+# -----------------------------------------------------------------------------
+#
+# snapshot info https://chguide.co.uk/bulk-data/psc
+# snapshot download page http://download.companieshouse.gov.uk/persons-with-significant-control-snapshot-YYYY-MM-DD.zip
+
+
+import json
+import csv
+from rapidfuzz import fuzz
+
+max_lines_to_check = 1e12  # for testing e.g. reduce to 1e6
+
+# File paths
+snapshot = "companies_house_data/persons-with-significant-control-snapshot-2025-03-16.txt"
+output_file = "non-UK_corporate_pscs.txt"
+
+
+def is_uk_a_fuzzy_match(country, threshold=85):
+    """Determine if a country string is considered UK by fuzzy matching."""
+    normalized = country.lower().replace("registered in", "").strip()
+    uk_terms = [
+        "uk", "england", "scotland", "wales", "northern ireland", "united kingdom",
+        "england and wales", "england & wales", "united kingdom (england and wales)",
+        "uk and wales", "united kingdom england", "u.k", "england, uk",
+        "scotland united kingdom", "gbeng", "gbsct", "great britain", "united kingdom (scotland)", "london",
+        "gbr", "cardiff", "e&w", "england, united kingdom", "britain", "uk/england", "cardiff, wales", "uk/scotland",
+        "gb", "companies house", "n. ireland", "edinburgh", "uk, yorkshire", "Companies House - Registrar Of Companies", 
+        "Northern Ireland, United Kingdom", "london, england", "belfast", "eng", "u k", "england and wales, england", 
+        "west yorkshire "
+    ]
+    for term in uk_terms:
+        if fuzz.ratio(normalized, term) >= threshold:
+            return True
+    return False
+
+# Dictionary to hold counts for non-UK companies (by country_registered)
+non_uk_counts = {}
+lines_checked = 0
+
+
+with open(snapshot, "r", encoding="utf-8") as infile, open(output_file, "w", encoding="utf-8") as outfile:
+    for line in infile:
+        lines_checked += 1
+        if lines_checked > max_lines_to_check:
+            break
+        try:
+            record = json.loads(line)
+            # Process only corporate PSCs.
+            if record.get("data", {}).get("kind") == "corporate-entity-person-with-significant-control":
+                identification = record.get("data", {}).get("identification", {})
+                country_registered = identification.get("country_registered")
+                if not country_registered or is_uk_a_fuzzy_match(country_registered):
+                    continue
+
+                place_registered = identification.get("place_registered")
+                if not place_registered or is_uk_a_fuzzy_match(place_registered):
+                    continue
+
+                # output the record.
+                non_uk_counts[country_registered] = non_uk_counts.get(country_registered, 0) + 1
+                outfile.write(line)
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON on line {lines_checked}: {e}")
+
+# Sort the non-UK counts by highest first.
+sorted_non_uk = sorted(non_uk_counts.items(), key=lambda x: x[1], reverse=True)
+
+print("Non-UK Countries and their counts:")
+for country, count in sorted_non_uk:
+    print(f"{country}: {count}")
+
+print("")
+total_non_uk_count = sum(non_uk_counts.values())
+print("\nTotal non-UK count:", total_non_uk_count)
+print("Number of PSCs checked:", lines_checked)
+
+# Count total lines in the snapshot file.
+total_lines = 0
+with open(snapshot, "r", encoding="utf-8") as file:
+    for _ in file:
+        total_lines += 1
+print("Total number of items in the file:", total_lines)
+
+# Export the non_uk_counts dictionary to a CSV file.
+csv_output_file = "non_uk_counts.csv"
+with open(csv_output_file, "w", newline="", encoding="utf-8") as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(["Country Registered", "Count"])
+    for country, count in sorted_non_uk:
+        writer.writerow([country, count])
+
+print(f"Exported non-UK counts to {csv_output_file}")
